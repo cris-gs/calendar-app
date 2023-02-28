@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Modal from 'react-modal';
 
 import Swal from 'sweetalert2';
@@ -9,6 +9,7 @@ import DatePicker, { registerLocale } from "react-datepicker";
 import es from 'date-fns/locale/es';
 import "react-datepicker/dist/react-datepicker.css";
 import './modal.css'
+import { useCalendarStore, useUiStore } from '../../hooks';
 
 
 registerLocale( 'es', es );
@@ -28,7 +29,8 @@ Modal.setAppElement('#root');
 
 export const CalendarModal = () => {
 
-    const [isOpen, setIsOpen] = useState(true);
+    const { isDateModalOpen, closeDateModa } = useUiStore();
+    const { activeEvents, starSavingEvent } = useCalendarStore();
     const [formSubmitted, setFormSubmitted] = useState(false);
 
     const [formValues, setFormValues] = useState({
@@ -47,6 +49,14 @@ export const CalendarModal = () => {
 
     }, [ formValues.title, formSubmitted ])
 
+    useEffect(() => {
+      if ( activeEvents !== null ){
+        setFormValues({ ...activeEvents });
+      } 
+
+    }, [ activeEvents ])
+    
+    
     const notesClass = useMemo(() => {
         if ( !formSubmitted ) return '';
 
@@ -71,10 +81,11 @@ export const CalendarModal = () => {
     }
 
     const onCloseModal = () => {
-        setIsOpen( !isOpen );
+        // console.log("Closing modal");
+        closeDateModa();
     }
 
-    const onSubmit = ( event ) => {
+    const onSubmit = async( event ) => {
         event.preventDefault();
         setFormSubmitted( true );
 
@@ -89,18 +100,21 @@ export const CalendarModal = () => {
 
         console.log(formValues);
 
+        await starSavingEvent( formValues );
+        closeDateModa();
+        setFormSubmitted(false);
 
 
     }
 
     return (
         <Modal
-            isOpen={isOpen}
-            onRequestClose={onCloseModal}
-            style={customStyles}
+            isOpen={ isDateModalOpen }
+            onRequestClose={ onCloseModal }
+            style={ customStyles }
             className={"modal"}
             overlayClassName={"modal-fondo"}
-            closeTimeoutMS={200}
+            closeTimeoutMS={ 200 }
         >
             <h1> Nuevo evento </h1>
             <hr />
